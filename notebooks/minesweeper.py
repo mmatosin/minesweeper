@@ -46,31 +46,31 @@ def gen_board(board_size,deck):
     # shapes the board in the appropriate dimensions
     ### THERE LOOKS LIKE THERE IS A BUG HERE ###
     num_cells = board_size[0]*board_size[1]
-    board = get_chunks(deck[:num_cells], board_size[1])
+    solution_board = get_chunks(deck[:num_cells], board_size[1])
 
     # create a board filled with empty strings, these will be flipped to reveal cards
-    # empty_board = np.ones(board_size,dtype=bool)
-    empty_board = np.array(get_chunks(['' for x in range(num_cells)], board_size[1]))
+    game_board = np.array(get_chunks(['' for x in range(num_cells)], board_size[1]))
 
     # separates the deck into cards that are currently on the boar and cards that are not
     on_board = deck[:num_cells]
     off_board = deck[num_cells:]
 
-    return empty_board, np.array(board), on_board, off_board
+    return game_board, np.array(solution_board), on_board, off_board
 
 def create_game(board_size=(4,4),num_suits=4,deck_size=52):
     """Creates the game. Returns the game boards and deck"""
 
     deck  = gen_deck(board_size,num_suits,deck_size)
-    empty_board, board, on_board, off_board = gen_board(board_size,deck)
+    game_board, solution_board, on_board, off_board = gen_board(board_size,deck)
 
-    return deck, empty_board, np.array(board), on_board, off_board
+    return deck, game_board, np.array(solution_board), on_board, off_board
 
 
-def flip_random_card(board_size,empty_board,game_board):
+def flip_random_card(game_board,solution_board):
     """Select a RANDOM card from the board to flip over.
         If all cards are flipped, the game is over"""
-    flip_board = empty_board.copy()
+    flip_board = game_board.copy()
+    board_size = flip_board.shape
 
     # if all cards are flipped (i.e., if no cards are an empty string), the game is over
     if ~np.all(flip_board != ''):
@@ -80,7 +80,7 @@ def flip_random_card(board_size,empty_board,game_board):
         while flip_board[cell_location] != '':
             cell_location = random_tuple(board_size)
 
-        flip_board[cell_location] = board[cell_location]
+        flip_board[cell_location] = solution_board[cell_location]
     else:
         print('Conratulations! You won the game!')
 
@@ -90,14 +90,12 @@ def parse_cell(game_board,cell_location):
     """Checks the values of the cells adjacent to the cell_location
        Returns the adjacent values in a list
     """
-
     # extract row + column indices from location of flipped cards
     row, column = cell_location
-
     adj_vals = []
 
-    # check the cards one index away from the flipped card (in the horizontal and vertical directions)
-
+    # check the cards one index away from the flipped card
+    # (in the horizontal and vertical directions)
     try:
         adj_vals.append(game_board[row-1,column])
     except: pass
@@ -138,16 +136,16 @@ def get_match_prob(game_board):
 
        This is used to decide which card to flip next
     """
-    max_row, max_column = board_size
+    max_row, max_column = game_board.shape
 
     # get the location of each possible card, keep only those that ARE NOT flipped
     perms = [(row,col) for row in range(max_row) for col in range(max_column)]
-    open_slots = [perm for perm in perms if empty_board[perm] == '']
+    open_slots = [perm for perm in perms if game_board[perm] == '']
 
     # for open slot, check the prob. of a suit match, append value to list
     match_prob_list = []
     for loc in open_slots:
-        adj_vals = parse_cell(empty_board,loc)
+        adj_vals = parse_cell(game_board,loc)
         adj_suits = list(set([v for v in adj_vals if v != '']))
         match_prob = len(adj_suits)/len(adj_vals)
 
@@ -163,16 +161,16 @@ def get_match_prob(game_board):
     # RANDOMLY return the coords of a single lowest prob. slot to flip
     return tuple(random.choice(min_locs))
 
-def flip_best_odds(empty_board,loc_to_flip):
+def flip_best_odds(game_board,solution_board,loc_to_flip):
     """Select a card from the board to flip over.
         If all cards are flipped, the game is over"""
-    flip_board = empty_board.copy()
+    flip_board = game_board.copy()
 
     # if all cards are flipped (i.e., if no cards are an empty string), the game is over
     if ~np.all(flip_board != ''):
         # randomly search for a location to flip a card
         # while condition ensures that only face down cards will be selected to be flipped
-        flip_board[loc_to_flip] = board[loc_to_flip]
+        flip_board[loc_to_flip] = solution_board[loc_to_flip]
     else:
         print('Conratulations! You won the game!')
 
